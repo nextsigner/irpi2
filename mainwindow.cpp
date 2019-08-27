@@ -8,16 +8,18 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     vT1=0;
     tCuentaRev = new QTimer();
+    connect(tCuentaRev, SIGNAL(timeout()), this, SLOT(procTCR()));
     t1 = new QTimer();
+    connect(t1, SIGNAL(timeout()), this, SLOT(procT1()));
 
     //Definir Rango de SpinBox
     ui->spinBoxMsEmular->setRange(1,500);
     ui->spinBoxMsEmular->setValue(100);
     ui->spinBoxMsEmular->setSingleStep(10);//Cada cuanto sube
 
-    ui->spinBoxMsCR->setRange(1,500);
-    ui->spinBoxMsCR->setValue(100);
-    ui->spinBoxMsCR->setSingleStep(1);//Cada cuanto sube
+    ui->spinBoxMsCR->setRange(1,1000);
+    ui->spinBoxMsCR->setValue(1000);
+    ui->spinBoxMsCR->setSingleStep(10);//Cada cuanto sube
 
 
 
@@ -96,30 +98,37 @@ bool MainWindow::pinIsHigh(int pin){
 void MainWindow::procTCR()
 {
     //cantRevDetectadas++;
+    t1->stop();
     if(vT1==0){
         return;
     }
-    ui->labelCantRev->setText(QString::number(vT1));
-    int msm=60000;
-    float rpm=(float)1000 / ui->spinBoxMsCR->value() * vT1;
-    float rpm2=(float)rpm * 60 * 2;
-    if(QString::number(rpm2)!="inf"){
-        ui->labelRPM->setText(QString::number(rpm2));
+    unsigned short int  vT1Corr=((vT1+ 4)/5) * 5;
+    uvT1=vT1;
+    ui->labelCantRev->setText(QString::number(vT1Corr));
+    unsigned short int  rpm=(unsigned short int  )ui->spinBoxMsCR->value()/ 1000  * vT1Corr;
+    unsigned short int  rpm2=(unsigned short int)rpm * 60 * 2;
+    unsigned short int  rpmf=(unsigned short int)(rpm + uRpm)/2;
+    unsigned short int  rpmf2 = ((rpmf + 1)/2) * 2;
+    uRpm=rpm2;
+    if(QString::number(rpmf2)!="inf"){
+        ui->labelRPM->setText(QString::number(rpmf2));
+        vT1=0;
     }
-    vT1=0;
+    t1->start(ui->spinBoxMsEmular->value());
 }
 
 void MainWindow::procT1()
 {
 
-    qDebug()<<"T1"<<vT1;
+    //qDebug()<<"T1"<<vT1;
 #ifndef __arm__
     if(pinHighVirtual){
-        qDebug()<<">1";
+        //qDebug()<<">1";
         vT1++;
         pinHighVirtual=false;
     }else{
-        qDebug()<<">0";
+        //qDebug()<<">0";
+        //vT1=0;
         pinHighVirtual=true;
     }
 #else
@@ -141,8 +150,6 @@ void MainWindow::on_pushButtonEmular_toggled(bool checked)
     if(checked){
         s.append("#pushButtonEmular{background-color:red; }");
         rpmVirtualEncendido=true;
-        t1 = new QTimer();
-        connect(t1, SIGNAL(timeout()), this, SLOT(procT1()));
         t1->start(ui->spinBoxMsEmular->value());
     }else{
         s.append("#pushButtonEmular{background-color:gray; }");
@@ -156,8 +163,6 @@ void MainWindow::on_spinBoxMsEmular_valueChanged(int arg1)
 {
     if(rpmVirtualEncendido){
         t1->stop();
-        t1 = new QTimer();
-        connect(t1, SIGNAL(timeout()), this, SLOT(procT1()));
         t1->start(ui->spinBoxMsEmular->value());
     }
 }
@@ -165,8 +170,6 @@ void MainWindow::on_spinBoxMsEmular_valueChanged(int arg1)
 void MainWindow::on_spinBoxMsCR_valueChanged(int arg1)
 {
     tCuentaRev->stop();
-    tCuentaRev = new QTimer();
-    connect(tCuentaRev, SIGNAL(timeout()), this, SLOT(procTCR()));
     tCuentaRev->start(ui->spinBoxMsCR->value());
 }
 
@@ -176,9 +179,7 @@ void MainWindow::on_pushButtonEncender_clicked(bool checked)
     if(checked){
         s.append("#pushButtonEncender{background-color:red; }");
         ui->pushButtonEncender->setText("Encendido");
-        tCuentaRev = new QTimer();
-        connect(tCuentaRev, SIGNAL(timeout()), this, SLOT(procTCR()));
-        tCuentaRev->start(100);
+        tCuentaRev->start(ui->spinBoxMsCR->value());
     }else{
         s.append("#pushButtonEncender{background-color:gray; }");
         ui->pushButtonEncender->setText("Encender");

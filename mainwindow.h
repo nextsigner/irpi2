@@ -45,12 +45,15 @@ private:
 
     bool rpmVirtualEncendido=false;
 
-    int vT1=0;
-    int cantRevDetectadas=0;
+    unsigned short int vT1=0;
+    unsigned short int uvT1=0;
+    unsigned short int uRpm;
+
     QTimer *tCuentaRev;
     QTimer *t1;
 
     bool pinHighVirtual=false;
+
 
 
 
