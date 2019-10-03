@@ -8,7 +8,14 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     vT1=0;
     tCuentaRev = new QTimer();
+    setGeometry(x(), 20, width(), height());
     t1 = new QTimer();
+
+    timerInyeccion = new QTimer();
+    connect(timerInyeccion,SIGNAL(timeout()),this,SLOT(detenerInyeccion()));
+    timerRevPin21 = new QTimer();
+    connect(timerRevPin21,SIGNAL(timeout()),this,SLOT(revisarPin()));
+    timerRevPin21->start(1);
 
     //Definir Rango de SpinBox
     ui->spinBoxMsEmular->setRange(1,500);
@@ -24,11 +31,42 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifdef __arm__
     rpiGpio = new mmapGpio();
 #endif
+    setPinType(21,1);
+    setPinType(20,0);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+void MainWindow::revisarPin(){
+    //qDebug()<<"Revisando...";
+    if(pinIsHigh(20)==1){
+        qDebug()<<"20-->1";
+        ui->widget->setStyleSheet("#widget{background-color:green}");
+    }else{
+        qDebug()<<"20-->0";
+        ui->widget->setStyleSheet("#widget{background-color:red}");
+    }
+    if(readPin(21)==1){
+        //qDebug()<<"21-->1";
+        //ui->widget->setStyleSheet("#widget{background-color:green}");
+        //writePinLow(20);
+    }else{
+        //qDebug()<<"21-->0";
+        //ui->widget->setStyleSheet("#widget{background-color:red}");
+        writePinHigh(20);
+        //timerInyeccion = new QTimer();
+        //connect(timerInyeccion,SIGNAL(timeout()),this,SLOT(detenerInyeccion()));
+        vT1++;
+        timerInyeccion->stop();
+        timerInyeccion->start(ui->spinBoxTiempoInyeccion->value());
+
+    }
+}
+void MainWindow::detenerInyeccion(){
+    setPinState(20,0);
+    writePinLow(20);
 }
 void MainWindow::setPinType(int pin, int type)
 {
@@ -101,8 +139,8 @@ void MainWindow::procTCR()
     }
     ui->labelCantRev->setText(QString::number(vT1));
     int msm=60000;
-    float rpm=(float)1000 / ui->spinBoxMsCR->value() * vT1;
-    float rpm2=(float)rpm * 60 * 2;
+    float rps=(float)1000 / ui->spinBoxMsCR->value() * vT1; //rps rev por segmento del segundo.
+    float rpm2=(float)rps * 60 / 2;
     if(QString::number(rpm2)!="inf"){
         ui->labelRPM->setText(QString::number(rpm2));
     }
@@ -123,13 +161,12 @@ void MainWindow::procT1()
         pinHighVirtual=true;
     }
 #else
+
     if(readPin(21)==1){
         qDebug()<<"-->1";
         vT1++;
-        writePinLow(21);
     }else{
         qDebug()<<"-->0";
-        writePinHigh(21);
     }
 #endif
 
@@ -156,8 +193,8 @@ void MainWindow::on_spinBoxMsEmular_valueChanged(int arg1)
 {
     if(rpmVirtualEncendido){
         t1->stop();
-        t1 = new QTimer();
-        connect(t1, SIGNAL(timeout()), this, SLOT(procT1()));
+        //t1 = new QTimer();
+        //connect(t1, SIGNAL(timeout()), this, SLOT(procT1()));
         t1->start(ui->spinBoxMsEmular->value());
     }
 }
@@ -165,8 +202,8 @@ void MainWindow::on_spinBoxMsEmular_valueChanged(int arg1)
 void MainWindow::on_spinBoxMsCR_valueChanged(int arg1)
 {
     tCuentaRev->stop();
-    tCuentaRev = new QTimer();
-    connect(tCuentaRev, SIGNAL(timeout()), this, SLOT(procTCR()));
+    //tCuentaRev = new QTimer();
+    //connect(tCuentaRev, SIGNAL(timeout()), this, SLOT(procTCR()));
     tCuentaRev->start(ui->spinBoxMsCR->value());
 }
 
@@ -186,5 +223,7 @@ void MainWindow::on_pushButtonEncender_clicked(bool checked)
     }
     ui->pushButtonEncender->setStyleSheet(s);
 }
+
+
 
 

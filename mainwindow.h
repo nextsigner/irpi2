@@ -30,15 +30,18 @@ public slots:
     void procTCR();
     void procT1();
 private slots:
+
+    void revisarPin();
+    void detenerInyeccion();
+
+
     void on_pushButtonEmular_toggled(bool checked);
 
     void on_spinBoxMsEmular_valueChanged(int arg1);
 
     void on_spinBoxMsCR_valueChanged(int arg1);
 
-    void on_pushButtonEncender_clicked(bool checked);
-
-
+    void on_pushButtonEncender_clicked(bool checked);    
 
 private:
     Ui::MainWindow *ui;
@@ -49,6 +52,8 @@ private:
     int cantRevDetectadas=0;
     QTimer *tCuentaRev;
     QTimer *t1;
+    QTimer *timerRevPin21;
+    QTimer *timerInyeccion;
 
     bool pinHighVirtual=false;
 
